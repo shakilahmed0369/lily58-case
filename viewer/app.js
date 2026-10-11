@@ -12,6 +12,9 @@ const els = {
   loading: document.getElementById('loading'),
   empty: document.getElementById('empty'),
   toast: document.getElementById('toast'),
+  weight: document.getElementById('model-weight'),
+  weightText: document.getElementById('weight-text'),
+  material: document.getElementById('material'),
 };
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -67,6 +70,7 @@ let loadToken = 0;
 let fitDist = 200;
 const targetCenter = new THREE.Vector3();
 let tween = null;
+let currentVolume = 0;
 
 const VIEWS = {
   iso: [1, 0.8, 1],
@@ -83,6 +87,38 @@ function fmtBytes(bytes) {
   return bytes < 1024 * 1024
     ? `${(bytes / 1024).toFixed(0)} KB`
     : `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function computeVolume(geometry) {
+  const pos = geometry.attributes.position.array;
+  let volume = 0;
+  for (let i = 0; i < pos.length; i += 9) {
+    const ax = pos[i];
+    const ay = pos[i + 1];
+    const az = pos[i + 2];
+    const bx = pos[i + 3];
+    const by = pos[i + 4];
+    const bz = pos[i + 5];
+    const cx = pos[i + 6];
+    const cy = pos[i + 7];
+    const cz = pos[i + 8];
+    volume +=
+      ax * (by * cz - bz * cy) +
+      ay * (bz * cx - bx * cz) +
+      az * (bx * cy - by * cx);
+  }
+  return Math.abs(volume) / 6;
+}
+
+function updateWeight() {
+  if (!(currentVolume > 0)) {
+    els.weight.hidden = true;
+    return;
+  }
+  const cm3 = currentVolume / 1000;
+  const grams = cm3 * Number(els.material.value);
+  els.weightText.textContent = `${cm3.toFixed(1)} cm³ · ≈ ${grams.toFixed(1)} g (solid)`;
+  els.weight.hidden = false;
 }
 
 function showToast(message) {
@@ -175,6 +211,8 @@ function showModel(entry, geometry) {
   rim.position.set(-r * 0.4, r * 0.6, -r * 1.4);
 
   const triangles = geometry.attributes.position.count / 3;
+  currentVolume = computeVolume(geometry);
+  updateWeight();
   els.name.textContent = entry.name.replace(/\.stl$/i, '');
   els.meta.textContent =
     `${fmt(size.x)} × ${fmt(size.z)} × ${fmt(size.y)} mm  ·  ${triangles.toLocaleString()} triangles`;
@@ -252,6 +290,8 @@ document.querySelectorAll('[data-view]').forEach((button) => {
     setView(button.dataset.view);
   });
 });
+
+els.material.addEventListener('change', updateWeight);
 
 document.getElementById('wire').addEventListener('click', (event) => {
   material.wireframe = !material.wireframe;

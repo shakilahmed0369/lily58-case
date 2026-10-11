@@ -85,6 +85,28 @@
   #model-info { top: 16px; left: 16px; max-width: min(420px, 50%); padding: 12px 15px; }
   #model-name { font-weight: 600; font-size: 15px; margin-bottom: 3px; word-break: break-all; }
   #model-meta { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  #model-weight {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  #model-weight[hidden] { display: none; }
+  #material {
+    appearance: none;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 2px 6px;
+    font: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+  }
+  #material:hover { border-color: #39435c; }
 
   #controls { top: 16px; right: 16px; display: flex; flex-direction: column; gap: 6px; padding: 10px; }
   .pill {
@@ -178,6 +200,16 @@
     <div class="hud" id="model-info">
       <div id="model-name">&mdash;</div>
       <div id="model-meta">Select a model</div>
+      <div id="model-weight" hidden>
+        <span id="weight-text">&mdash;</span>
+        <select id="material" title="Print material (density in g/cm³)">
+          <option value="1.24" selected>PLA · 1.24</option>
+          <option value="1.27">PETG · 1.27</option>
+          <option value="1.04">ABS · 1.04</option>
+          <option value="1.21">TPU · 1.21</option>
+          <option value="1.10">Resin · 1.10</option>
+        </select>
+      </div>
     </div>
     <div class="hud" id="controls">
       <button class="pill" data-view="iso">Iso</button>
