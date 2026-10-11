@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STL Viewer</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1016;
+    --panel: #12161e;
+    --panel-2: #1a202c;
+    --border: #232b3b;
+    --text: #e2e8f2;
+    --muted: #808b9d;
+    --accent: #5b8cff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    display: flex;
+    font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--text);
+    background: radial-gradient(120% 90% at 70% 20%, #141a26 0%, var(--bg) 60%);
+    overflow: hidden;
+  }
+
+  /* ---- sidebar ---- */
+  #sidebar {
+    width: 272px;
+    flex: 0 0 272px;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  #sidebar header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  #sidebar h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .2px; }
+  #sidebar .count { color: var(--muted); font-size: 12px; }
+  #list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .model {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 16px;
+    background: none;
+    border: 0;
+    border-left: 3px solid transparent;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .model:hover { background: var(--panel-2); }
+  .model.active { background: #1b2233; border-left-color: var(--accent); }
+  .model .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .model .size { flex-shrink: 0; color: var(--muted); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  #sidebar footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  /* ---- viewport ---- */
+  #viewport { position: relative; flex: 1; min-width: 0; }
+  #viewport canvas { display: block; cursor: grab; }
+  #viewport canvas:active { cursor: grabbing; }
+
+  .hud {
+    position: absolute;
+    background: rgba(18, 22, 30, .82);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+  }
+  #model-info { top: 16px; left: 16px; max-width: min(420px, 50%); padding: 12px 15px; }
+  #model-name { font-weight: 600; font-size: 15px; margin-bottom: 3px; word-break: break-all; }
+  #model-meta { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+  #controls { top: 16px; right: 16px; display: flex; flex-direction: column; gap: 6px; padding: 10px; }
+  .pill {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .pill:hover { border-color: #39435c; }
+  .pill.active { background: rgba(91, 140, 255, .16); border-color: var(--accent); color: #cfe0ff; }
+  #controls hr { border: 0; border-top: 1px solid var(--border); margin: 2px 0; }
+
+  #hint {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+    background: rgba(18, 22, 30, .7);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 14px;
+  }
+
+  #loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(13, 16, 22, .45);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  #loading[hidden] { display: none; }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #39435c;
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+  #empty[hidden] { display: none; }
+
+  #toast {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #3b2330;
+    border: 1px solid #6d2a44;
+    color: #ffd7e3;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    max-width: 70%;
+  }
+  #toast[hidden] { display: none; }
+</style>
+</head>
+<body>
+  <aside id="sidebar">
+    <header>
+      <h1>STL Viewer</h1>
+      <span class="count" id="count">loading&hellip;</span>
+    </header>
+    <nav id="list"></nav>
+    <footer id="dir"></footer>
+  </aside>
+
+  <main id="viewport">
+    <div class="hud" id="model-info">
+      <div id="model-name">&mdash;</div>
+      <div id="model-meta">Select a model</div>
+    </div>
+    <div class="hud" id="controls">
+      <button class="pill" data-view="iso">Iso</button>
+      <button class="pill" data-view="top">Top</button>
+      <button class="pill" data-view="front">Front</button>
+      <button class="pill" data-view="side">Side</button>
+      <hr>
+      <button class="pill" id="wire">Wireframe</button>
+      <button class="pill active" id="grid">Grid</button>
+    </div>
+    <div id="hint">Drag to orbit &middot; Scroll to zoom &middot; Right-drag to pan &middot; &uarr;&darr; switch model</div>
+    <div id="loading" hidden><span class="spinner"></span>Loading&hellip;</div>
+    <div id="empty" hidden>No STL files found in this folder</div>
+    <div id="toast" hidden></div>
+  </main>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
