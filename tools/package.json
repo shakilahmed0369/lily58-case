@@ -1,0 +1,11 @@
+{
+  "name": "lily58-model-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "node gen-lite.mjs"
+  },
+  "dependencies": {
+    "manifold-3d": "^3.5.4"
+  }
+}
